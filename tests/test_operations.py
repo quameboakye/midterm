@@ -1,108 +1,210 @@
 import pytest
-from typing import Union
-from app.operations import Operations
+from decimal import Decimal
+from typing import Any, Dict, Type
 
-Number = Union[int, float]
-
-@pytest.mark.parametrize(
-    "a, b, expected",
-    [
-        (2, 3, 5),
-        (0, 0, 0),
-        (-1, 1, 0),
-        (2.5, 3.5, 6.0),
-        (-2.5, 3.5, 1.0),
-    ],
-    ids=[
-        "add_two_positive_integers",
-        "add_two_zeros",
-        "add_negative_and_positive_integer",
-        "add_two_positive_floats",
-        "add_negative_float_and_positive_float",
-    ]
+from app.exceptions import ValidationError
+from app.operations import (
+    Operation,
+    Addition,
+    Subtraction,
+    Multiplication,
+    Division,
+    Power,
+    Root,
+    OperationFactory,
 )
-def test_addition(a: Number, b: Number, expected: Number) -> None:
-    result = Operations.addition(a, b)
-    assert result == expected, f"Expected addition({a}, {b}) to be {expected}, but got {result}"
 
-@pytest.mark.parametrize(
-    "a, b, expected",
-    [
-        (5, 3, 2),
-        (0, 0, 0),
-        (-5, -3, -2),
-        (10.5, 5.5, 5.0),
-        (-10.5, -5.5, -5.0),
-    ],
-    ids=[
-        "subtract_smaller_positive_integer_from_larger",
-        "subtract_two_zeros",
-        "subtract_negative_integer_from_negative_integer",
-        "subtract_two_positive_floats",
-        "subtract_two_negative_floats",
-    ]
-)
-def test_subtraction(a: Number, b: Number, expected: Number) -> None:
-    result = Operations().subtraction(a, b)
-    assert result == expected, f"Expected subtraction({a}, {b}) to be {expected}, but got {result}"
 
-@pytest.mark.parametrize(
-    "a, b, expected",
-    [
-        (2, 3, 6),
-        (0, 10, 0),
-        (-2, -3, 6),
-        (2.5, 4.0, 10.0),
-        (-2.5, 4.0, -10.0),
-    ],
-    ids=[
-        "multiply_two_positive_integers",
-        "multiply_zero_with_positive_integer",
-        "multiply_two_negative_integers",
-        "multiply_two_positive_floats",
-        "multiply_negative_float_with_positive_float",
-    ]
-)
-def test_multiplication(a: Number, b: Number, expected: Number) -> None:
-    result = Operations.multiplication(a, b)
-    assert result == expected, f"Expected multiplication({a}, {b}) to be {expected}, but got {result}"
+class TestOperation:
 
-@pytest.mark.parametrize(
-    "a, b, expected",
-    [
-        (6, 3, 2.0),
-        (-6, -3, 2.0),
-        (6.0, 3.0, 2.0),
-        (-6.0, 3.0, -2.0),
-        (0, 5, 0.0),
-    ],
-    ids=[
-        "divide_two_positive_integers",
-        "divide_two_negative_integers",
-        "divide_two_positive_floats",
-        "divide_negative_float_by_positive_float",
-        "divide_zero_by_positive_integer",
-    ]
-)
-def test_division(a: Number, b: Number, expected: float) -> None:
-    result = Operations.division(a, b)
-    assert result == expected, f"Expected division({a}, {b}) to be {expected}, but got {result}"
+    def test_str_representation(self):
+        class TestOp(Operation):
+            def execute(self, a: Decimal, b: Decimal) -> Decimal:
+                return a
 
-@pytest.mark.parametrize(
-    "a, b",
-    [
-        (1, 0),
-        (-1, 0),
-        (0, 0),
-    ],
-    ids=[
-        "divide_positive_dividend_by_zero",
-        "divide_negative_dividend_by_zero",
-        "divide_zero_by_zero",
-    ]
-)
-def test_division_by_zero(a: Number, b: Number) -> None:
-    with pytest.raises(ValueError, match="Division by zero is not allowed.") as excinfo:
-        Operations.division(a, b)
-    assert "Division by zero is not allowed." in str(excinfo.value), \
-        f"Expected error message 'Division by zero is not allowed.', but got '{excinfo.value}'"
+        assert str(TestOp()) == "TestOp"
+
+
+class BaseOperationTest:
+
+    operation_class: Type[Operation]
+    valid_test_cases: Dict[str, Dict[str, Any]]
+    invalid_test_cases: Dict[str, Dict[str, Any]]
+
+    def test_valid_operations(self):
+        operation = self.operation_class()
+        for name, case in self.valid_test_cases.items():
+            a = Decimal(str(case["a"]))
+            b = Decimal(str(case["b"]))
+            expected = Decimal(str(case["expected"]))
+            result = operation.execute(a, b)
+            assert result == expected, f"Failed case: {name}"
+
+    def test_invalid_operations(self):
+        operation = self.operation_class()
+        for name, case in self.invalid_test_cases.items():
+            a = Decimal(str(case["a"]))
+            b = Decimal(str(case["b"]))
+            error = case.get("error", ValidationError)
+            error_message = case.get("message", "")
+
+            with pytest.raises(error, match=error_message):
+                operation.execute(a, b)
+
+
+class TestAddition(BaseOperationTest):
+
+    operation_class = Addition
+    valid_test_cases = {
+        "positive_numbers": {"a": "5", "b": "3", "expected": "8"},
+        "negative_numbers": {"a": "-5", "b": "-3", "expected": "-8"},
+        "mixed_signs": {"a": "-5", "b": "3", "expected": "-2"},
+        "zero_sum": {"a": "5", "b": "-5", "expected": "0"},
+        "decimals": {"a": "5.5", "b": "3.3", "expected": "8.8"},
+        "large_numbers": {
+            "a": "1e10",
+            "b": "1e10",
+            "expected": "20000000000"
+        },
+    }
+    invalid_test_cases = {} 
+
+
+class TestSubtraction(BaseOperationTest):
+
+    operation_class = Subtraction
+    valid_test_cases = {
+        "positive_numbers": {"a": "5", "b": "3", "expected": "2"},
+        "negative_numbers": {"a": "-5", "b": "-3", "expected": "-2"},
+        "mixed_signs": {"a": "-5", "b": "3", "expected": "-8"},
+        "zero_result": {"a": "5", "b": "5", "expected": "0"},
+        "decimals": {"a": "5.5", "b": "3.3", "expected": "2.2"},
+        "large_numbers": {
+            "a": "1e10",
+            "b": "1e9",
+            "expected": "9000000000"
+        },
+    }
+    invalid_test_cases = {} 
+
+
+class TestMultiplication(BaseOperationTest):
+
+    operation_class = Multiplication
+    valid_test_cases = {
+        "positive_numbers": {"a": "5", "b": "3", "expected": "15"},
+        "negative_numbers": {"a": "-5", "b": "-3", "expected": "15"},
+        "mixed_signs": {"a": "-5", "b": "3", "expected": "-15"},
+        "multiply_by_zero": {"a": "5", "b": "0", "expected": "0"},
+        "decimals": {"a": "5.5", "b": "3.3", "expected": "18.15"},
+        "large_numbers": {
+            "a": "1e5",
+            "b": "1e5",
+            "expected": "10000000000"
+        },
+    }
+    invalid_test_cases = {} 
+
+
+class TestDivision(BaseOperationTest):
+
+    operation_class = Division
+    valid_test_cases = {
+        "positive_numbers": {"a": "6", "b": "2", "expected": "3"},
+        "negative_numbers": {"a": "-6", "b": "-2", "expected": "3"},
+        "mixed_signs": {"a": "-6", "b": "2", "expected": "-3"},
+        "decimals": {"a": "5.5", "b": "2", "expected": "2.75"},
+        "divide_zero": {"a": "0", "b": "5", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "divide_by_zero": {
+            "a": "5",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Division by zero is not allowed"
+        },
+    }
+
+
+class TestPower(BaseOperationTest):
+
+    operation_class = Power
+    valid_test_cases = {
+        "positive_base_and_exponent": {"a": "2", "b": "3", "expected": "8"},
+        "zero_exponent": {"a": "5", "b": "0", "expected": "1"},
+        "one_exponent": {"a": "5", "b": "1", "expected": "5"},
+        "decimal_base": {"a": "2.5", "b": "2", "expected": "6.25"},
+        "zero_base": {"a": "0", "b": "5", "expected": "0"},
+    }
+    invalid_test_cases = {
+        "negative_exponent": {
+            "a": "2",
+            "b": "-3",
+            "error": ValidationError,
+            "message": "Negative exponents not supported"
+        },
+    }
+
+
+class TestRoot(BaseOperationTest):
+
+    operation_class = Root
+    valid_test_cases = {
+        "square_root": {"a": "9", "b": "2", "expected": "3"},
+        "cube_root": {"a": "27", "b": "3", "expected": "3"},
+        "fourth_root": {"a": "16", "b": "4", "expected": "2"},
+        "decimal_root": {"a": "2.25", "b": "2", "expected": "1.5"},
+    }
+    invalid_test_cases = {
+        "negative_base": {
+            "a": "-9",
+            "b": "2",
+            "error": ValidationError,
+            "message": "Cannot calculate root of negative number"
+        },
+        "zero_root": {
+            "a": "9",
+            "b": "0",
+            "error": ValidationError,
+            "message": "Zero root is undefined"
+        },
+    }
+
+
+class TestOperationFactory:
+
+    def test_create_valid_operations(self):
+        operation_map = {
+            'add': Addition,
+            'subtract': Subtraction,
+            'multiply': Multiplication,
+            'divide': Division,
+            'power': Power,
+            'root': Root,
+        }
+
+        for op_name, op_class in operation_map.items():
+            operation = OperationFactory.create_operation(op_name)
+            assert isinstance(operation, op_class)
+            operation = OperationFactory.create_operation(op_name.upper())
+            assert isinstance(operation, op_class)
+
+    def test_create_invalid_operation(self):
+        with pytest.raises(ValueError, match="Unknown operation: invalid_op"):
+            OperationFactory.create_operation("invalid_op")
+
+    def test_register_valid_operation(self):
+        class NewOperation(Operation):
+            def execute(self, a: Decimal, b: Decimal) -> Decimal:
+                return a
+
+        OperationFactory.register_operation("new_op", NewOperation)
+        operation = OperationFactory.create_operation("new_op")
+        assert isinstance(operation, NewOperation)
+
+    def test_register_invalid_operation(self):
+        class InvalidOperation:
+            pass
+
+        with pytest.raises(TypeError, match="Operation class must inherit"):
+            OperationFactory.register_operation("invalid", InvalidOperation)
