@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 import datetime
 from decimal import Decimal, InvalidOperation
-import logging
 from typing import Any, Dict
 
 from app.exceptions import OperationError
+from app.logger import Logger
+
+logger = Logger.get_logger()
 
 
 @dataclass
@@ -39,27 +41,36 @@ class Calculation:
 
         op = operations.get(self.operation)
         if not op:
+            logger.error(f"Unknown operation attempted: '{self.operation}'")
             raise OperationError(f"Unknown operation: {self.operation}")
 
         try:
-            return op(self.operand1, self.operand2)
+            res = op(self.operand1, self.operand2)
+            logger.info(f"Successfully performed Calculation: {self.operation}({self.operand1}, {self.operand2}) = {res}")
+            return res
         except (InvalidOperation, ValueError, ArithmeticError) as e:
+            logger.error(f"Calculation failed for {self.operation}({self.operand1}, {self.operand2}): {str(e)}")
             raise OperationError(f"Calculation failed: {str(e)}")
 
     @staticmethod
     def _raise_div_zero():  # pragma: no cover
+        logger.error("Operation Error: Division by zero is not allowed")
         raise OperationError("Division by zero is not allowed")
 
     @staticmethod
     def _raise_neg_power():  # pragma: no cover
+        logger.error("Operation Error: Negative exponents are not supported")
         raise OperationError("Negative exponents are not supported")
 
     @staticmethod
     def _raise_invalid_root(x: Decimal, y: Decimal):  # pragma: no cover
         if y == 0:
+            logger.error(f"Operation Error: Zero root is undefined for operand2={y}")
             raise OperationError("Zero root is undefined")
         if x < 0:
+            logger.error(f"Operation Error: Cannot calculate root of negative number operand1={x}")
             raise OperationError("Cannot calculate root of negative number")
+        logger.error(f"Operation Error: Invalid root operation with operands {x}, {y}")
         raise OperationError("Invalid root operation")
 
     def to_dict(self) -> Dict[str, Any]:
@@ -84,7 +95,7 @@ class Calculation:
 
             saved_result = Decimal(data['result'])
             if calc.result != saved_result:
-                logging.warning(
+                logger.warning(
                     f"Loaded calculation result {saved_result} "
                     f"differs from computed result {calc.result}"
                 )  # pragma: no cover
@@ -92,6 +103,7 @@ class Calculation:
             return calc
 
         except (KeyError, InvalidOperation, ValueError) as e:
+            logger.error(f"Invalid calculation data during deserialization: {str(e)}")
             raise OperationError(f"Invalid calculation data: {str(e)}")
 
     def __str__(self) -> str:

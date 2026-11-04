@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import Dict
 from app.exceptions import ValidationError
+from app.logger import Logger
+
+logger = Logger.get_logger()
 
 
 class Operation(ABC):
@@ -21,21 +24,27 @@ class Addition(Operation):
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return a + b
+        result = a + b
+        logger.info(f"Executed {self.__class__.__name__}: {a} + {b} = {result}")
+        return result
 
 
 class Subtraction(Operation):
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return a - b
+        result = a - b
+        logger.info(f"Executed {self.__class__.__name__}: {a} - {b} = {result}")
+        return result
 
 
 class Multiplication(Operation):
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return a * b
+        result = a * b
+        logger.info(f"Executed {self.__class__.__name__}: {a} * {b} = {result}")
+        return result
 
 
 class Division(Operation):
@@ -43,11 +52,14 @@ class Division(Operation):
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
+            logger.error(f"Validation Error in Division: Division by zero attempted with operands {a} and {b}")
             raise ValidationError("Division by zero is not allowed")
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return a / b
+        result = a / b
+        logger.info(f"Executed {self.__class__.__name__}: {a} / {b} = {result}")
+        return result
 
 
 class Power(Operation):
@@ -55,11 +67,14 @@ class Power(Operation):
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b < 0:
+            logger.error(f"Validation Error in Power: Negative exponent attempted with operands {a} and {b}")
             raise ValidationError("Negative exponents not supported")
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return Decimal(pow(float(a), float(b)))
+        result = Decimal(pow(float(a), float(b)))
+        logger.info(f"Executed {self.__class__.__name__}: {a} ** {b} = {result}")
+        return result
 
 
 class Root(Operation):
@@ -67,13 +82,17 @@ class Root(Operation):
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if a < 0:
+            logger.error(f"Validation Error in Root: Negative base for root attempted with operands {a} and {b}")
             raise ValidationError("Cannot calculate root of negative number")
         if b == 0:
+            logger.error(f"Validation Error in Root: Zero root attempted with operands {a} and {b}")
             raise ValidationError("Zero root is undefined")
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return Decimal(pow(float(a), 1 / float(b)))
+        result = Decimal(pow(float(a), 1 / float(b)))
+        logger.info(f"Executed {self.__class__.__name__}: {b} root of {a} = {result}")
+        return result
 
 
 class Modulus(Operation):
@@ -82,11 +101,14 @@ class Modulus(Operation):
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
+            logger.error(f"Validation Error in Modulus: Modulus by zero attempted with operands {a} and {b}")
             raise ValidationError("Modulus by zero is not allowed")
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return a % b
+        result = a % b
+        logger.info(f"Executed {self.__class__.__name__}: {a} % {b} = {result}")
+        return result
 
 
 class IntegerDivision(Operation):
@@ -95,11 +117,14 @@ class IntegerDivision(Operation):
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
+            logger.error(f"Validation Error in IntegerDivision: Integer division by zero attempted with operands {a} and {b}")
             raise ValidationError("Integer division by zero is not allowed")
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return a // b
+        result = a // b
+        logger.info(f"Executed {self.__class__.__name__}: {a} // {b} = {result}")
+        return result
 
 
 class Percentage(Operation):
@@ -108,11 +133,14 @@ class Percentage(Operation):
     def validate_operands(self, a: Decimal, b: Decimal) -> None:
         super().validate_operands(a, b)
         if b == 0:
+            logger.error(f"Validation Error in Percentage: Percentage with a zero base attempted with operands {a} and {b}")
             raise ValidationError("Percentage with a zero base is not allowed")
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return (a / b) * 100
+        result = (a / b) * 100
+        logger.info(f"Executed {self.__class__.__name__}: ({a} / {b}) * 100 = {result}")
+        return result
 
 
 class AbsoluteDifference(Operation):
@@ -120,7 +148,9 @@ class AbsoluteDifference(Operation):
 
     def execute(self, a: Decimal, b: Decimal) -> Decimal:
         self.validate_operands(a, b)
-        return abs(a - b)
+        result = abs(a - b)
+        logger.info(f"Executed {self.__class__.__name__}: |{a} - {b}| = {result}")
+        return result
 
 
 class OperationFactory:
@@ -141,12 +171,16 @@ class OperationFactory:
     @classmethod
     def register_operation(cls, name: str, operation_class: type) -> None:
         if not issubclass(operation_class, Operation):
+            logger.warning(f"Failed to register operation '{name}': class does not inherit from Operation")
             raise TypeError("Operation class must inherit from Operation")
         cls._operations[name.lower()] = operation_class
+        logger.info(f"Successfully registered new operation type: '{name.lower()}'")
 
     @classmethod
     def create_operation(cls, operation_type: str) -> Operation:
         operation_class = cls._operations.get(operation_type.lower())
         if not operation_class:
+            logger.error(f"Unknown operation requested: '{operation_type}'")
             raise ValueError(f"Unknown operation: {operation_type}")
+        logger.info(f"Created operation instance for: '{operation_type.lower()}'")
         return operation_class()
