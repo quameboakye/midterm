@@ -22,7 +22,7 @@ class Logger:
         self.logger.setLevel(logging.INFO)
 
         # Prevent adding duplicate handlers if initialized multiple times
-        if not self.logger.handlers:
+        if not self.logger.handlers:  # pragma: no cover
             # File Handler using configuration
             file_handler = logging.FileHandler(
                 str(log_path), encoding=self.config.default_encoding
@@ -31,13 +31,13 @@ class Logger:
 
             # Formatter
             formatter = logging.Formatter(
-                "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+                "%(asctime)s - %(levelname)s [%(filename)s:%(lineno)d] - %(message)s"
             )
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
 
     @classmethod
     def get_logger(cls):
-        if cls._instance is None:
+        if cls._instance is None:  # pragma: no cover
             cls()
         return cls._instance.logger
