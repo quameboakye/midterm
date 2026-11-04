@@ -87,3 +87,6 @@ docs/_build/
 *.sublime-workspace
 history/
 test_history/
+
+# Local environment settings
+.env
