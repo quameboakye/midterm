@@ -1,264 +1,96 @@
-# 📦 Project Setup
+# Advanced Calculator
+
+A command-line calculator built with Python. It uses several design patterns (Factory, Memento, Observer), loads its settings from a `.env` file, saves its history to CSV with `pandas`, and is tested with `pytest` at 100% coverage.
 
 ---
 
-# 🧩 1. Install Homebrew (Mac Only)
-
-> Skip this step if you're on Windows.
-
-Homebrew is a package manager for macOS.  
-You’ll use it to easily install Git, Python, Docker, etc.
-
-**Install Homebrew:**
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-**Verify Homebrew:**
-
-```bash
-brew --version
-```
-
-If you see a version number, you're good to go.
-
----
-
-# 🧩 2. Install and Configure Git
-
-## Install Git
-
-- **MacOS (using Homebrew)**
-
-```bash
-brew install git
-```
-
-- **Windows**
-
-Download and install [Git for Windows](https://git-scm.com/download/win).  
-Accept the default options during installation.
-
-**Verify Git:**
-
-```bash
-git --version
-```
-
----
-
-## Configure Git Globals
-
-Set your name and email so Git tracks your commits properly:
-
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your_email@example.com"
-```
-
-Confirm the settings:
-
-```bash
-git config --list
-```
-
----
-
-## Generate SSH Keys and Connect to GitHub
-
-> Only do this once per machine.
-
-1. Generate a new SSH key:
-
-```bash
-ssh-keygen -t ed25519 -C "your_email@example.com"
-```
-
-(Press Enter at all prompts.)
-
-2. Start the SSH agent:
-
-```bash
-eval "$(ssh-agent -s)"
-```
-
-3. Add the SSH private key to the agent:
-
-```bash
-ssh-add ~/.ssh/id_ed25519
-```
-
-4. Copy your SSH public key:
-
-- **Mac/Linux:**
-
-```bash
-cat ~/.ssh/id_ed25519.pub | pbcopy
-```
-
-- **Windows (Git Bash):**
-
-```bash
-cat ~/.ssh/id_ed25519.pub | clip
-```
-
-5. Add the key to your GitHub account:
-   - Go to [GitHub SSH Settings](https://github.com/settings/keys)
-   - Click **New SSH Key**, paste the key, save.
-
-6. Test the connection:
-
-```bash
-ssh -T git@github.com
-```
-
-You should see a success message.
-
----
-
-# 🧩 3. Clone the Repository
-
-Now you can safely clone the course project:
+## Setup
 
 ```bash
 git clone <repository-url>
-cd <repository-directory>
-```
-
----
-
-# 🛠️ 4. Install Python 3.10+
-
-## Install Python
-
-- **MacOS (Homebrew)**
-
-```bash
-brew install python
-```
-
-- **Windows**
-
-Download and install [Python for Windows](https://www.python.org/downloads/).  
-✅ Make sure you **check the box** `Add Python to PATH` during setup.
-
-**Verify Python:**
-
-```bash
-python3 --version
-```
-or
-```bash
-python --version
-```
-
----
-
-## Create and Activate a Virtual Environment
-
-(Optional but recommended)
-
-```bash
+cd midterm
 python3 -m venv venv
-source venv/bin/activate   # Mac/Linux
-venv\Scripts\activate.bat  # Windows
-```
-
-### Install Required Packages
-
-```bash
+source venv/bin/activate      # Mac/Linux/WSL
+venv\Scripts\activate.bat     # Windows
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
----
-
-# 🐳 5. (Optional) Docker Setup
-
-> Skip if Docker isn't used in this module.
-
-## Install Docker
-
-- [Install Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
-- [Install Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
-
-## Build Docker Image
-
-```bash
-docker build -t <image-name> .
-```
-
-## Run Docker Container
-
-```bash
-docker run -it --rm <image-name>
-```
-
----
-
-# 🚀 6. Running the Project
-
-- **Without Docker**:
+## Run
 
 ```bash
 python main.py
 ```
 
-(or update this if the main script is different.)
+## Commands
 
-- **With Docker**:
+| Command | Description |
+|---|---|
+| `add`, `subtract`, `multiply`, `divide` | Basic arithmetic |
+| `power` | Raise the first number to the power of the second |
+| `root` | nth root: first number is the value, second is the root |
+| `modulus` | Remainder of the first number divided by the second |
+| `int_divide` | Integer division, discarding the fractional part |
+| `percentage` | `(a / b) * 100` |
+| `abs_diff` | Absolute difference `|a - b|` |
+| `history` | Show calculation history |
+| `undo` / `redo` | Revert or restore the last calculation |
+| `clear` | Clear history |
+| `save` / `load` | Save history to CSV or load it |
+| `help` | List commands |
+| `exit` | Save history and quit |
+
+Each operation asks for two numbers. Type `cancel` at either prompt to abort.
+
+## Design patterns
+
+- **Factory:** `OperationFactory` in `app/operations.py` creates operation objects by command name. Unknown names raise a clear error.
+- **Memento:** `CalculatorMemento` stores snapshots of the history. `undo_stack` and `redo_stack` in `Calculator` give undo and redo. A new calculation clears the redo stack, and undo/redo also auto-save when enabled.
+- **Observer:** `LoggingObserver` writes each calculation (operation, operands, result) to the log file. `AutoSaveObserver` saves the history to CSV through `pandas` after each calculation. A failing observer is logged and does not stop the others.
+
+## Configuration
+
+Settings are loaded from `.env` with `python-dotenv`. Copy `.env.example` to `.env` and edit it. If a variable is missing, the default is used. Invalid values raise a `ConfigurationError` on startup.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CALCULATOR_LOG_DIR` | `logs` | Directory for log files |
+| `CALCULATOR_HISTORY_DIR` | `history` | Directory for history files |
+| `CALCULATOR_MAX_HISTORY_SIZE` | `1000` | Maximum history entries |
+| `CALCULATOR_AUTO_SAVE` | `true` | Auto-save history (`true` or `false`) |
+| `CALCULATOR_PRECISION` | `10` | Decimal places shown in results |
+| `CALCULATOR_MAX_INPUT_VALUE` | `1e999` | Largest accepted input |
+| `CALCULATOR_DEFAULT_ENCODING` | `utf-8` | Encoding for the history CSV |
+
+## Error handling
+
+Custom exceptions live in `app/exceptions.py`: `CalculatorError` (base), `ValidationError`, `OperationError` and `ConfigurationError`.
+
+- Inputs must be finite numbers within the configured limit. Text, empty input, `NaN` and `Infinity` are rejected with a message explaining what to enter.
+- Division, modulus, integer division and percentage reject a zero divisor. Roots reject negative numbers and a zero root. Power rejects negative exponents.
+- CSV problems are reported specifically: an empty file is treated as empty history, and corrupt files, missing columns, wrong encoding and permission errors each give a message saying how to fix them.
+
+## Tests
 
 ```bash
-docker run -it --rm <image-name>
+pytest --cov=app --cov-fail-under=100
 ```
 
----
+GitHub Actions runs this command on every push and pull request to `main`.
 
-# 📝 7. Submission Instructions
+## Project layout
 
-After finishing your work:
-
-```bash
-git add .
-git commit -m "Complete Module X"
-git push origin main
 ```
-
-Then submit the GitHub repository link as instructed.
-
----
-
-# 🔥 Useful Commands Cheat Sheet
-
-| Action                         | Command                                          |
-| ------------------------------- | ------------------------------------------------ |
-| Install Homebrew (Mac)          | `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` |
-| Install Git                     | `brew install git` or Git for Windows installer |
-| Configure Git Global Username  | `git config --global user.name "Your Name"`      |
-| Configure Git Global Email     | `git config --global user.email "you@example.com"` |
-| Clone Repository                | `git clone <repo-url>`                          |
-| Create Virtual Environment     | `python3 -m venv venv`                           |
-| Activate Virtual Environment   | `source venv/bin/activate` / `venv\Scripts\activate.bat` |
-| Install Python Packages        | `pip install -r requirements.txt`               |
-| Build Docker Image              | `docker build -t <image-name> .`                |
-| Run Docker Container            | `docker run -it --rm <image-name>`               |
-| Push Code to GitHub             | `git add . && git commit -m "message" && git push` |
-
----
-
-# 📋 Notes
-
-- Install **Homebrew** first on Mac.
-- Install and configure **Git** and **SSH** before cloning.
-- Use **Python 3.10+** and **virtual environments** for Python projects.
-- **Docker** is optional depending on the project.
-
----
-
-# 📎 Quick Links
-
-- [Homebrew](https://brew.sh/)
-- [Git Downloads](https://git-scm.com/downloads)
-- [Python Downloads](https://www.python.org/downloads/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [GitHub SSH Setup Guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)
+app/
+  calculation.py         Calculation record and result computation
+  calculator.py          Calculator, history, undo/redo, observers
+  calculator_config.py   Configuration loaded from .env
+  calculator_memento.py  Memento for undo/redo
+  calculator_repl.py     Command-line interface
+  exceptions.py          Custom exceptions
+  history.py             Observer classes
+  input_validators.py    Input validation
+  operations.py          Operations and OperationFactory
+tests/                   pytest suite
+main.py                  Entry point
+```
