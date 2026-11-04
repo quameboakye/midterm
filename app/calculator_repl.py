@@ -34,7 +34,7 @@ def calculator_repl():
                 if command == 'help':
                     print("\nAvailable commands:")
                     print("  add, subtract, multiply, divide, power, root - Perform calculations")
-                    print("  modulus, int_divide, percentage, abs_diff - Perform calculations")
+                    print("  modulus, int_divide, percentage (or percent), abs_diff - Perform calculations")
                     print("  history - Show calculation history")
                     print("  clear - Clear calculation history")
                     print("  undo - Undo the last calculation")
@@ -99,7 +99,7 @@ def calculator_repl():
                     continue
 
                 if command in ['add', 'subtract', 'multiply', 'divide', 'power', 'root',
-                               'modulus', 'int_divide', 'percentage', 'abs_diff']:
+                               'modulus', 'int_divide', 'percentage', 'percent', 'abs_diff']:
                     try:
                         print("\nEnter numbers (or 'cancel' to abort):")
                         a = input("First number: ")
@@ -111,7 +111,10 @@ def calculator_repl():
                             print("Operation cancelled")
                             continue
 
-                        operation = OperationFactory.create_operation(command)
+                        # Map 'percent' to 'percentage' for the operation factory
+                        op_name = 'percentage' if command == 'percent' else command
+
+                        operation = OperationFactory.create_operation(op_name)
                         calc.set_operation(operation)
 
                         result = calc.perform_operation(a, b)
