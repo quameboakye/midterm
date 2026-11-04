@@ -124,6 +124,12 @@ class Calculator:
         except ValidationError as e:
             logging.error(f"Validation error: {str(e)}")
             raise
+        except ArithmeticError as e:
+            logging.error(f"Arithmetic error: {repr(e)}")
+            raise OperationError(
+                "The calculation could not be completed: the result is too large "
+                "or the operation is not defined for these numbers. Try smaller values."
+            )
         except Exception as e:
             logging.error(f"Operation failed: {str(e)}")
             raise OperationError(f"Operation failed: {str(e)}")
@@ -159,6 +165,12 @@ class Calculator:
                 )
                 logging.info("Empty history saved")
 
+        except PermissionError:
+            logging.error(f"Permission denied saving history to {self.config.history_file}")
+            raise OperationError(
+                f"Failed to save history: permission denied for {self.config.history_file}. "
+                "Close the file if it is open in another program, or check its permissions."
+            )
         except Exception as e:
             logging.error(f"Failed to save history: {e}")
             raise OperationError(f"Failed to save history: {e}")
@@ -186,6 +198,26 @@ class Calculator:
                     logging.info("Loaded empty history file")
             else:
                 logging.info("No history file found - starting with empty history")
+        except pd.errors.EmptyDataError:
+            logging.info("History file is empty - starting with empty history")
+        except pd.errors.ParserError as e:
+            logging.error(f"Failed to load history: {e}")
+            raise OperationError(
+                "Failed to load history: the file is not valid CSV. "
+                f"Fix or delete {self.config.history_file} and try again."
+            )
+        except UnicodeDecodeError:
+            logging.error("Failed to load history: encoding mismatch")
+            raise OperationError(
+                f"Failed to load history: the file cannot be read as "
+                f"{self.config.default_encoding}. Check CALCULATOR_DEFAULT_ENCODING."
+            )
+        except KeyError as e:
+            logging.error(f"Failed to load history: missing column {e}")
+            raise OperationError(
+                f"Failed to load history: missing column {e}. "
+                "The file must have operation, operand1, operand2, result and timestamp columns."
+            )
         except Exception as e:
             logging.error(f"Failed to load history: {e}")
             raise OperationError(f"Failed to load history: {e}")
