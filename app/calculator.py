@@ -144,11 +144,19 @@ class Calculator:
 
             if history_data:
                 df = pd.DataFrame(history_data)
-                df.to_csv(self.config.history_file, index=False)
+                df.to_csv(
+                    self.config.history_file,
+                    index=False,
+                    encoding=self.config.default_encoding
+                )
                 logging.info(f"History saved successfully to {self.config.history_file}")
             else:
                 pd.DataFrame(columns=['operation', 'operand1', 'operand2', 'result', 'timestamp']
-                           ).to_csv(self.config.history_file, index=False)
+                           ).to_csv(
+                    self.config.history_file,
+                    index=False,
+                    encoding=self.config.default_encoding
+                )
                 logging.info("Empty history saved")
 
         except Exception as e:
@@ -158,7 +166,10 @@ class Calculator:
     def load_history(self) -> None:
         try:
             if self.config.history_file.exists():
-                df = pd.read_csv(self.config.history_file)
+                df = pd.read_csv(
+                    self.config.history_file,
+                    encoding=self.config.default_encoding
+                )
                 if not df.empty:
                     self.history = [
                         Calculation.from_dict({
