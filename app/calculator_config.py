@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from decimal import Decimal
+import codecs
+from decimal import Decimal, InvalidOperation
 from numbers import Number
 from pathlib import Path
 import os
@@ -15,6 +16,25 @@ load_dotenv()
 def get_project_root() -> Path:
     current_file = Path(__file__)
     return current_file.parent.parent
+
+
+def _env_int(name: str, default: str) -> int:
+    raw = os.getenv(name, default)
+    try:
+        return int(raw)
+    except ValueError:
+        raise ConfigurationError(f"{name} must be an integer, got '{raw}'") from None
+
+
+def _env_decimal(name: str, default: str) -> Decimal:
+    raw = os.getenv(name, default)
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        raise ConfigurationError(f"{name} must be a number, got '{raw}'") from None
+    if not value.is_finite():
+        raise ConfigurationError(f"{name} must be a finite number, got '{raw}'")
+    return value
 
 
 @dataclass
@@ -34,8 +54,9 @@ class CalculatorConfig:
             os.getenv('CALCULATOR_BASE_DIR', str(project_root))
         ).resolve()
 
-        self.max_history_size = max_history_size or int(
-            os.getenv('CALCULATOR_MAX_HISTORY_SIZE', '1000')
+        self.max_history_size = (
+            max_history_size if max_history_size is not None
+            else _env_int('CALCULATOR_MAX_HISTORY_SIZE', '1000')
         )
 
         auto_save_env = os.getenv('CALCULATOR_AUTO_SAVE', 'true').lower()
@@ -43,12 +64,14 @@ class CalculatorConfig:
             auto_save_env == 'true' or auto_save_env == '1'
         )
 
-        self.precision = precision or int(
-            os.getenv('CALCULATOR_PRECISION', '10')
+        self.precision = (
+            precision if precision is not None
+            else _env_int('CALCULATOR_PRECISION', '10')
         )
 
-        self.max_input_value = max_input_value or Decimal(
-            os.getenv('CALCULATOR_MAX_INPUT_VALUE', '1e999')
+        self.max_input_value = (
+            max_input_value if max_input_value is not None
+            else _env_decimal('CALCULATOR_MAX_INPUT_VALUE', '1e999')
         )
 
         self.default_encoding = default_encoding or os.getenv(
@@ -90,3 +113,9 @@ class CalculatorConfig:
             raise ConfigurationError("precision must be positive")
         if self.max_input_value <= 0:
             raise ConfigurationError("max_input_value must be positive")
+        try:
+            codecs.lookup(self.default_encoding)
+        except LookupError:
+            raise ConfigurationError(
+                f"default_encoding is not a valid encoding: {self.default_encoding}"
+            ) from None
