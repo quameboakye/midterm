@@ -27,7 +27,7 @@ def test_autosave_observer_writes_csv_on_new_calculation(calc):
     calc.add_observer(AutoSaveObserver(calc))
     calc.perform_operation("2", "3")
 
-    df = pd.read_csv(calc.config.history_file)
+    df = pd.read_csv(calc.config.history_file, encoding=calc.config.default_encoding)
     assert len(df) == 1
     assert df.iloc[0]["operation"] == "Addition"
     assert df.iloc[0]["result"] == 5
