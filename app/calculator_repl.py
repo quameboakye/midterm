@@ -1,10 +1,21 @@
-from decimal import Decimal
+from decimal import Decimal, localcontext
 import logging
 
 from app.calculator import Calculator
 from app.exceptions import OperationError, ValidationError
 from app.history import AutoSaveObserver, LoggingObserver
 from app.operations import OperationFactory
+
+
+def format_display_result(result, precision: int):
+    """Normalize a Decimal result and round it to at most `precision` decimal places."""
+    if isinstance(result, Decimal):
+        result = result.normalize()
+        if result.as_tuple().exponent < -precision:
+            with localcontext() as ctx:
+                ctx.prec = len(result.as_tuple().digits) + precision + 1
+                result = result.quantize(Decimal(1).scaleb(-precision)).normalize()
+    return result
 
 
 def calculator_repl():
@@ -105,8 +116,7 @@ def calculator_repl():
 
                         result = calc.perform_operation(a, b)
 
-                        if isinstance(result, Decimal):
-                            result = result.normalize()
+                        result = format_display_result(result, calc.config.precision)
 
                         print(f"\nResult: {result}")
                     except (ValidationError, OperationError) as e:
