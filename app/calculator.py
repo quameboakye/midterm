@@ -79,7 +79,10 @@ class Calculator:
 
     def notify_observers(self, calculation: Calculation) -> None:
         for observer in self.observers:
-            observer.update(calculation)
+            try:
+                observer.update(calculation)
+            except Exception as e:
+                logging.error(f"Observer {observer.__class__.__name__} failed: {e}")
 
     def set_operation(self, operation: Operation) -> None:
         self.operation_strategy = operation
