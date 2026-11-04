@@ -85,3 +85,5 @@ docs/_build/
 *.idea/
 *.sublime-project
 *.sublime-workspace
+history/
+test_history/
