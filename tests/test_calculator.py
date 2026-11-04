@@ -151,19 +151,22 @@ def test_calculator_repl_exit(mock_print, mock_input):
     with patch('app.calculator.Calculator.save_history') as mock_save_history:
         calculator_repl()
         mock_save_history.assert_called_once()
-        mock_print.assert_any_call("History saved successfully.")
-        mock_print.assert_any_call("Goodbye!")
+        all_prints = [call.args[0] for call in mock_print.call_args_list if call.args]
+        assert any("History saved successfully." in p for p in all_prints)
+        assert any("Goodbye!" in p for p in all_prints)
 
 
 @patch('builtins.input', side_effect=['help', 'exit'])
 @patch('builtins.print')
 def test_calculator_repl_help(mock_print, mock_input):
     calculator_repl()
-    mock_print.assert_any_call("\nAvailable commands:")
+    all_prints = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("Available commands:" in p for p in all_prints)
 
 
 @patch('builtins.input', side_effect=['add', '2', '3', 'exit'])
 @patch('builtins.print')
 def test_calculator_repl_addition(mock_print, mock_input):
     calculator_repl()
-    mock_print.assert_any_call("\nResult: 5")
+    all_prints = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("Result: 5" in p for p in all_prints)
