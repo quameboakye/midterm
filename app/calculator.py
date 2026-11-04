@@ -200,12 +200,22 @@ class Calculator:
         self.redo_stack.clear()
         logging.info("History cleared")
 
+    def _autosave(self) -> None:
+        """Keep the saved history file in step with undo/redo when auto-save is on."""
+        try:
+            if self.config.auto_save:
+                self.save_history()
+                logging.info("History auto-saved after undo/redo")
+        except Exception as e:
+            logging.warning(f"Auto-save after undo/redo failed: {e}")
+
     def undo(self) -> bool:
         if not self.undo_stack:
             return False
         memento = self.undo_stack.pop()
         self.redo_stack.append(CalculatorMemento(self.history.copy()))
         self.history = memento.history.copy()
+        self._autosave()
         return True
 
     def redo(self) -> bool:
@@ -214,4 +224,5 @@ class Calculator:
         memento = self.redo_stack.pop()
         self.undo_stack.append(CalculatorMemento(self.history.copy()))
         self.history = memento.history.copy()
+        self._autosave()
         return True
